@@ -17,7 +17,15 @@
         <section class="main">
             <input class="toggle-all" type="checkbox">
             <label for="toggle-all">Mark all as complete</label>
-            <ul class="todo-list" id='list'></ul>
+            <ul class="todo-list" id='list'>
+    {{range .}}<li data-id="{{.ID}}" {{if .Completed}}class="completed" {{end}}>
+                    <div class="view">
+                        <input class="toggle" type="checkbox" {{if .Checked}}checked{{end}}>
+                        <label>{{.Title}}</label>
+                        <button class="destroy"></button>
+                    </div>
+                </li>{{end}}
+            </ul>
             <footer class="footer">
                 <span class="todo-count"></span>
                 <div class="filters">
