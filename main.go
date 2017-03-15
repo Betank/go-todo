@@ -3,7 +3,6 @@ package main
 import (
 	"html/template"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -25,7 +24,7 @@ var entries = &storage{todos: make(map[int]*todo)}
 var index = 0
 
 func serveIndexHTML(w http.ResponseWriter, r *http.Request) {
-	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
+	t := template.Must(template.New("index").Parse(indexHTML))
 	t.Execute(w, entries.todos)
 }
 
@@ -37,7 +36,7 @@ func showActive(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
+	t := template.Must(template.New("index").Parse(indexHTML))
 	t.Execute(w, activeTodos)
 }
 
@@ -49,7 +48,7 @@ func showCompleted(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
+	t := template.Must(template.New("index").Parse(indexHTML))
 	t.Execute(w, completedTodos)
 }
 
@@ -98,7 +97,6 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := mux.NewRouter()
-	mux.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
 	mux.HandleFunc("/add", addTodo).Methods("POST")
 	mux.HandleFunc("/active", showActive).Methods("GET")
 	mux.HandleFunc("/completed", showCompleted).Methods("GET")
