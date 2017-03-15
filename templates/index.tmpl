@@ -12,28 +12,31 @@
     <section class="todoapp">
         <header class="header">
             <h1>todos</h1>
-            <input class="new-todo" id="todoInput" placeholder="What needs to be done?" autofocus>
+            <form action="/add" method="POST">
+                <input name="text" class="new-todo" placeholder="What needs to be done?" autofocus>
+            </form>
         </header>
         <section class="main">
             <input class="toggle-all" type="checkbox">
             <label for="toggle-all">Mark all as complete</label>
             <ul class="todo-list" id='list'>
-    {{range .}}<li data-id="{{.ID}}" {{if .Completed}}class="completed" {{end}}>
+                {{range .}}
+                <li data-id="{{.ID}}" {{if .Completed}}class="completed" {{end}}>
                     <div class="view">
-                        <input class="toggle" type="checkbox" {{if .Checked}}checked{{end}}>
+                        <input class="toggle" type="checkbox" {{if .Completed}}checked{{end}} onclick="window.location='/update/{{.ID}}'">
                         <label>{{.Title}}</label>
-                        <button class="destroy"></button>
+                        <button class="destroy" onclick="window.location='/delete/{{.ID}}'"></button>
                     </div>
                 </li>{{end}}
             </ul>
             <footer class="footer">
                 <span class="todo-count"></span>
                 <div class="filters">
-                    <a href="#/" class="selected">All</a>
-                    <a href="#/active">Active</a>
-                    <a href="#/completed">Completed</a>
+                    <a href="/" class="selected">All</a>
+                    <a href="/active">Active</a>
+                    <a href="/completed">Completed</a>
                 </div>
-                <button class="clear-completed">Clear completed</button>
+                <button class="clear-completed" onclick="window.location='/clear'">Clear completed</button>
             </footer>
         </section>
     </section>

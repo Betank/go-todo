@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -11,34 +12,101 @@ import (
 
 type storage struct {
 	sync.Mutex
-	todos []todo
+	todos map[int]*todo
 }
 
 type todo struct {
-	ID        string
+	ID        int
 	Title     string
 	Completed bool
-	Checked   bool
 }
 
-var entries *storage
+var entries = &storage{todos: make(map[int]*todo)}
+var index = 0
+
+func serveIndexHTML(w http.ResponseWriter, r *http.Request) {
+	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
+	t.Execute(w, entries.todos)
+}
+
+func showActive(w http.ResponseWriter, r *http.Request) {
+	activeTodos := make([]todo, 0)
+	for _, todo := range entries.todos {
+		if !todo.Completed {
+			activeTodos = append(activeTodos, *todo)
+		}
+	}
+
+	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
+	t.Execute(w, activeTodos)
+}
+
+func showCompleted(w http.ResponseWriter, r *http.Request) {
+	completedTodos := make([]todo, 0)
+	for _, todo := range entries.todos {
+		if todo.Completed {
+			completedTodos = append(completedTodos, *todo)
+		}
+	}
+
+	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
+	t.Execute(w, completedTodos)
+}
+
+func clearTodos(w http.ResponseWriter, r *http.Request) {
+	entries.Lock()
+	defer entries.Unlock()
+	entries.todos = make(map[int]*todo)
+
+	w.Header().Add("Location", "/")
+	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func addTodo(w http.ResponseWriter, r *http.Request) {
+	entries.Lock()
+	defer entries.Unlock()
+	index++
+	entries.todos[index] = &todo{ID: index, Title: r.FormValue("text")}
+
+	w.Header().Add("Location", "/")
+	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func updateTodo(w http.ResponseWriter, r *http.Request) {
+	entries.Lock()
+	defer entries.Unlock()
+
+	if id, err := strconv.Atoi(mux.Vars(r)["id"]); err == nil {
+		entries.todos[id].Completed = !entries.todos[id].Completed
+	}
+
+	w.Header().Add("Location", "/")
+	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func deleteTodo(w http.ResponseWriter, r *http.Request) {
+	entries.Lock()
+	defer entries.Unlock()
+
+	if id, err := strconv.Atoi(mux.Vars(r)["id"]); err == nil {
+		delete(entries.todos, id)
+	}
+
+	w.Header().Add("Location", "/")
+	w.WriteHeader(http.StatusTemporaryRedirect)
+}
 
 func main() {
-	entries = &storage{todos: make([]todo, 0)}
-
 	mux := mux.NewRouter()
 	mux.PathPrefix("/assets/").Handler(http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets"))))
-	mux.HandleFunc("/", ServeIndexHTML)
+	mux.HandleFunc("/add", addTodo).Methods("POST")
+	mux.HandleFunc("/active", showActive).Methods("GET")
+	mux.HandleFunc("/completed", showCompleted).Methods("GET")
+	mux.HandleFunc("/clear", clearTodos).Methods("GET")
+	mux.HandleFunc("/update/{id}", updateTodo).Methods("GET")
+	mux.HandleFunc("/delete/{id}", deleteTodo).Methods("GET")
+	mux.HandleFunc("/", serveIndexHTML)
 
 	http.Handle("/", mux)
 	http.ListenAndServe(":8080", nil)
-}
-
-// ServeIndexHTML renders and serves page
-func ServeIndexHTML(w http.ResponseWriter, r *http.Request) {
-	t := template.Must(template.ParseFiles(filepath.Join("templates", "index.tmpl")))
-
-	entries.Lock()
-	defer entries.Unlock()
-	t.Execute(w, entries.todos)
 }
