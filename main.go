@@ -21,7 +21,7 @@ type todo struct {
 }
 
 var entries = &storage{todos: make(map[int]*todo)}
-var index = 0
+var index int
 
 func serveIndexHTML(w http.ResponseWriter, r *http.Request) {
 	t := template.Must(template.New("index").Parse(indexHTML))
